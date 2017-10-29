@@ -33,4 +33,6 @@ public:
     void onRigidSetup(const rdtk::RigidBody &rigid);
     void onRigidExit(const rdtk::RigidBody &rigid);
     
+    ofTrueTypeFont infoFont;
+    
 };

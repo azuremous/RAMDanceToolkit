@@ -115,21 +115,18 @@ const ofColor tagColor[] = {
     ofColor(16, 80, 0), //19
 };
 
-const int maxSize = 500;
-int maxHeight = 42;
 
 randomCubeUni::randomCubeUni():
 trigger(false),
 initParts(false),
 resetMove(false),
-appearTime(5000000),
+showDebugBox(false),
+maxHeight(42),
 checkTime(0),
-changeType(0),
 counter(0),
-boxHeight(80),
 touchId(0),
 boxSize(130),
-distance(23.0),
+distance(33.0),
 spd(0.010),
 length(0.5f),
 firstActorName("")
@@ -161,10 +158,6 @@ void randomCubeUni::setup()
     
     currentPos = joints->getPivotAWorldPos();
     
-    for(int i = 0; i < maxSize; i++){
-        triggerBox.push_back(ofVec3f(ofRandom(-300, 300), ofRandom(0, maxHeight), ofRandom(-300, 300)));
-    }
-    
     touchId = (int)ofRandom(0, 19);
     touchIDColor = tagColor[touchId];
     infoFont.load(OF_TTF_SANS, 50);
@@ -174,20 +167,11 @@ void randomCubeUni::setup()
 void randomCubeUni::update()
 {
     //!
-    if(initParts && ofGetElapsedTimeMillis() - checkTime >= appearTime){
-        if(changeType == 0){
-            resetMove = true;
-        }else if(changeType == 1){
-            counter++;
-            touchId = (int)ofRandom(0, 19);
-            touchIDColor = tagColor[touchId];
-            if(counter >= triggerBox.size()){ counter = 0; }
-        }
-        checkTime += appearTime;
+    if(showDebugBox && ofGetElapsedTimeMillis() - checkTime > 1000){
+        showDebugBox = false;
     }
-    
     world.update();
-    ofSetWindowTitle("randomCube"+ofToString(ofGetFrameRate(), 0));
+    //ofSetWindowTitle("randomCube"+ofToString(ofGetFrameRate(), 0));
     
     if(trigger){ //for uni
         currentPos += (randomPos - currentPos) * spd;
@@ -209,55 +193,39 @@ void randomCubeUni::draw()
     cam.begin();
     ofPushStyle();
     ofEnableAlphaBlending();
-    if(changeType == 0){
-        ofFill(); ofSetColor(touchIDColor, 200);
-        ofDrawBox(visibleBox, distance * 2);
-    }else if(changeType == 1){
-        for(int i = 0; i < triggerBox.size(); i++){
-            if(counter == i){ ofFill(); ofSetColor(touchIDColor, 200); }
-            else{ ofNoFill(); ofSetColor(41, 37, 47, 100); }
-            ofDrawBox(triggerBox[i], distance*2);
-        }
-    }
+    ofFill();
+    ofSetColor(touchIDColor, 200);
+    ofDrawBox(visibleBox, distance * 2);
     ofDisableAlphaBlending();
     ofPopStyle();
-    
     cam.end();
-    if(changeType == 0){
-        ofSetColor(255);
+    
+}
+
+void randomCubeUni::disaffectDraw(){
+    if(bEnabled){
+        ofSetColor(255, 0 , 0);
         infoFont.drawString(jointIDText[touchId], ofGetWidth()/2, 100);
     }
-
 }
 
 //--------------------------------------------------------------
 void randomCubeUni::drawImGui(){
     ImGui::SliderFloat("distance", &distance, 1.0, 100.0);
     ImGui::SliderFloat("speed", &spd, 0.0001, 0.010);
-    ImGui::SliderFloat("box size", &boxSize, 40, 1000);
-    
-    if(ImGui::SliderInt("appear time", &appearTime, 100, 10000)){
-        cout<<"reset time"<<endl;
+    if(ImGui::SliderFloat("box size", &boxSize, 40, 1000)){
+        showDebugBox = true;
         checkTime = ofGetElapsedTimeMillis();
     }
-    ImGui::SliderInt("max height", &maxHeight, 10, 100);
-    ImGui::SliderInt("box height", &boxHeight, 0, 100);
-    ImGui::SliderInt("mode type", &changeType, 0, 1);
+    
+    if(ImGui::SliderInt("max height", &maxHeight, 10, 150)){
+        showDebugBox = true;
+        checkTime = ofGetElapsedTimeMillis();
+    }
     
     if(ImGui::SmallButton("debug")){
         showDebug = !showDebug;
-    }
-    if(changeType == 1){
-        if(ImGui::SmallButton("reset")){
-            for(int i = 0; i < maxSize; i++){
-                triggerBox[i].set(ofVec3f(ofRandom(-300, 300), ofRandom(0, maxHeight), ofRandom(-300, 300)));
-            }
-            counter = 0;
-            checkTime = ofGetElapsedTimeMillis();
-            touchIDColor = tagColor[(int)ofRandom(0, 19)];
-        }
-    }
-    
+    }    
     //length
 }
 
@@ -271,69 +239,62 @@ void randomCubeUni::onActorSetup(const rdtk::Actor &actor)
 void randomCubeUni::drawActor(const rdtk::Actor &actor){
     
     if(!initParts){
-        firstActorName = actor.getName();
+        cout<<actor.getName()<<endl;
+        firstActorName = "serio";//actor.getName();
         initParts = true;
         resetMove = true;
         counter = 0;
-        checkTime = ofGetElapsedTimeMillis();
     }
     
-    if(resetMove && changeType == 0){
-        float half = boxSize/2.0;
-        visibleBox = actor.getNode(JOINT_ABDOMEN).getGlobalPosition() + ofVec3f(ofRandom(-half, half), ofRandom(0, maxHeight), ofRandom(-half, half));
-        visibleBox.set(visibleBox.x, visibleBox.y - boxHeight, visibleBox.z);
+    if(resetMove && firstActorName == actor.getName()){
+        float half = boxSize/2.0 - distance/2.0;
+        visibleBox = actor.getNode(JOINT_ABDOMEN).getGlobalPosition() + ofVec3f(ofRandom(-half, half), 0, ofRandom(-half, half));
+        
+        float y = ofRandom(distance, maxHeight);
+        visibleBox.set(visibleBox.x, y, visibleBox.z);
         resetMove = false;
     }
     
-    if(firstActorName == actor.getName() && changeType == 0){
+    if(firstActorName == actor.getName() && showDebugBox){ //for debug
         
         ofPushStyle();
         ofNoFill();
         ofSetColor(255, 71, 119);
         ofVec3f boxPos = actor.getNode(JOINT_ABDOMEN).getGlobalPosition();
-        boxPos.set(boxPos.x, boxPos.y - boxHeight, boxPos.z);
-        ofDrawBox(boxPos, boxSize);
+        
+        float y = maxHeight /2.0;
+        boxPos.set(boxPos.x, y, boxPos.z);
+        float h = maxHeight;
+        ofDrawBox(boxPos, boxSize, h, boxSize);
         ofPopStyle();
     }
     
-    for(int i = 0; i < triggerBox.size(); i++){
-        for(int j = 0; j < 19; j++){
-            ofVec3f pos = actor.getNode(newJointID[j]).getGlobalPosition();//
-            
-            if(changeType == 0){
-                float dis = pos.distance(visibleBox);
-                if(dis <= distance && touchId == i){ //if(dis <= distance && counter == i){
-                    ofVec3f p = actor.getNode(newJointID[j]).getPosition();
-                    randomPos.set(triggerBox[i].x, 20.0, triggerBox[i].z);
-                    cout<<"set random pos: "<<randomPos<<endl;//" joint: "<<jointIDText[i]<<endl;
-                    trigger = true;
-                    resetMove = true;
-                }
-            }else if(changeType == 1){
-                float dis = pos.distance(triggerBox[i]);
-                if(dis <= distance && counter == i){
-                    ofVec3f p = actor.getNode(newJointID[j]).getPosition();
-                    randomPos.set(triggerBox[i].x, 20.0, triggerBox[i].z);
-                    cout<<"set random pos: "<<randomPos<<endl;//" joint: "<<jointIDText[i]<<endl;
-                    trigger = true;
-                    counter++;
-                    touchId = (int)ofRandom(0, 19);
-                    touchIDColor = tagColor[touchId];
-                    if(counter >= triggerBox.size()){ counter = 0; }
-                }
+    for(int j = 0; j < 19; j++){
+        ofVec3f pos = actor.getNode(newJointID[j]).getGlobalPosition();//
+        
+        float dis = pos.distance(visibleBox);
+        if(firstActorName == actor.getName()){ //first actor need touchID
+            if(dis <= distance && touchId == j){
+                randomPos.set(visibleBox.x, 20.0, visibleBox.z);
+                //cout<<"set random pos: "<<randomPos<<endl;
+                trigger = true;
+                resetMove = true;
+                touchId = (int)ofRandom(0, 19);
+                touchIDColor = tagColor[touchId];
             }
-           
+        }else{ //another actor
+            if(dis <= distance){
+                randomPos.set(visibleBox.x, 20.0, visibleBox.z);
+                //cout<<"set random pos from outsider: "<<randomPos<<endl;
+                trigger = true;
+                resetMove = true;
+                touchId = (int)ofRandom(0, 19);
+                touchIDColor = tagColor[touchId];
+            }
         }
+        
+        
     }
-    
-//    if(changeType == 1){
-//        for(int j = 0; j < 19; j++){
-//            ofSetColor(255, 255, 0);
-//            ofVec3f pos = actor.getNode(newJointID[j]).getGlobalPosition();//
-//            ofDrawBox(pos, 10);
-//        }
-//    }
-    
     
     if(showDebug){
         ofPushStyle();

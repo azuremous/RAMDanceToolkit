@@ -1,11 +1,12 @@
 #include "ofApp.h"
+#include "UniScene.h"
 #include "randomCubeUni.h"
-#include "glitchUni.h"
 
 #pragma mark - oF methods
 //--------------------------------------------------------------
 void ofApp::setup()
 {
+    
     ofSetFrameRate(60);
     ofSetVerticalSync(true);
     currentSceneNum = 1;
@@ -14,12 +15,16 @@ void ofApp::setup()
     // ------------------
     rdtk::Initialize(10000, true);
     
-    
     rdtk::SceneManager& sceneManager = rdtk::SceneManager::instance();
-    sceneManager.addScene<glitchUni>();
+    
+    rdtk::Preference & pref = rdtk::Preference::instance();
+    pref.bg.set(1.0, 1.0, 1.0);
+    pref.useShadows = true;
+    
+    sceneManager.addScene<UniScene>();
     sceneManager.addScene<randomCubeUni>();
     
-    
+    infoFont.load(OF_TTF_SANS, 50);
 }
 
 //--------------------------------------------------------------
@@ -32,6 +37,10 @@ void ofApp::update()
 void ofApp::draw()
 {
     
+    rdtk::SceneManager& sceneManager = rdtk::SceneManager::instance();
+    ofPtr<randomCubeUni> t = std::dynamic_pointer_cast<randomCubeUni>(sceneManager.getScene(2));
+    t->disaffectDraw();
+
 }
 
 
