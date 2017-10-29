@@ -158,12 +158,22 @@ void UniScene::draw()
 void UniScene::drawActor(const rdtk::Actor &actor)
 {
     //   pushAll();
+    
+
+    
     if(actorName == ""){
+        cout<<actor.getName()<<endl;
         actorName = actor.getName();
+        
     }
+    
+    if (actorName!="serio")
+    {
     
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
+    
+
     
     for (int i=0; i<actor.getNumNode(); i++)
     {
@@ -209,7 +219,7 @@ void UniScene::drawActor(const rdtk::Actor &actor)
         }
     }
     
-    
+    }
     
     //    ofDrawSphere(lhp.x, lhp.y, lhp.z, 50.f);
     //    popAll();
